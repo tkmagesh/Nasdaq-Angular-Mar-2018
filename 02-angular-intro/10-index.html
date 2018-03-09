@@ -24,9 +24,7 @@
 		/*
 			Introducing the scope object
 		*/
-		angular.injector(['ng']).invoke(function($rootScope){
-			window.scope = $rootScope;
-		});
+		
 
 		String.prototype.toInt = function() {
 			return parseInt(this, 10);
@@ -47,56 +45,65 @@
 			this.salary = net;
 		};
 
-		window.calculator = new SalaryCalculator();
-		scope.calculator = calculator;
+		
 		//interacts with the user
 		//View
 
-		function bindTwoWay($element, model){
-			$element.change(function(){
-				scope.$apply(function(){
-					var expr = model + ' = ' + $element.val().toInt();
-					scope.$eval(expr);
+		function compile(root){
+			function bindTwoWay($element, model, scope){
+				$element.change(function(){
+					scope.$apply(function(){
+						var expr = model + ' = ' + $element.val().toInt();
+						scope.$eval(expr);
+					});
 				});
-			});
-			scope.$watch(model, function(newValue, oldValue){
-				$element.val(newValue);
-			});
-		}
-
-		function bindClick($element, expr){
-			$element.click(function(){
-				scope.$apply(function(){
-					scope.$eval(expr);
+				scope.$watch(model, function(newValue, oldValue){
+					$element.val(newValue);
 				});
-			});
-		}
+			}
 
-		function bindOneWay($element, model){
-			scope.$watch(model, function(newValue, oldValue){
-				$element.html(newValue);
-			});
+			function bindClick($element, expr, scope){
+				$element.click(function(){
+					scope.$apply(function(){
+						scope.$eval(expr);
+					});
+				});
+			}
 
+			function bindOneWay($element, model, scope){
+				scope.$watch(model, function(newValue, oldValue){
+					$element.html(newValue);
+				});
+
+			}
+			return function link(scope){
+				$('*[app-model]', root).each(function(index, element){
+					var $element = $(element),
+						model = $element.attr('app-model');
+					bindTwoWay($element, model, scope);
+				})
+
+				$('*[app-click]', root).each(function(index, element){
+					var $element = $(element),
+						expr = $element.attr('app-click');
+					bindClick($element, expr, scope);
+				})
+
+				$('*[app-bind]', root).each(function(index, element){
+					var $element = $(element),
+						model = $element.attr('app-bind');
+					bindOneWay($element, model, scope);
+				})
+			}
 		}
+		
 		$(function(){
-			
-			$('*[app-model]').each(function(index, element){
-				var $element = $(element),
-					model = $element.attr('app-model');
-				bindTwoWay($element, model);
-			})
-
-			$('*[app-click]').each(function(index, element){
-				var $element = $(element),
-					expr = $element.attr('app-click');
-				bindClick($element, expr);
-			})
-
-			$('*[app-bind]').each(function(index, element){
-				var $element = $(element),
-					model = $element.attr('app-bind');
-				bindOneWay($element, model);
-			})
+			angular.injector(['ng']).invoke(function($rootScope){
+				window.scope = $rootScope;
+				window.calculator = new SalaryCalculator();
+				scope.calculator = calculator;
+				compile(document.body)(scope);
+			});
 		});
 	</script>
 </head>
