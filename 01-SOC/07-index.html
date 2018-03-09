@@ -83,6 +83,7 @@
 		$(function(){
 			window.calculator = new SalaryCalculator();
 
+			//Reacting to user actions
 			$('#txtBasic').change(function(){
 				calculator.set('basic', $('#txtBasic').val().toInt());
 			});
@@ -99,13 +100,12 @@
 				calculator.set('tax', $('#rangeTax').val().toInt());
 			});
 
-
 			$('#btnCalculate').click(function(){
 				calculator.calculate();
 			});
 
 			
-
+			//Reacting to model changes
 			calculator.watch('salary', function(){
 				$('#divResult').html(calculator.get('salary'));
 			});
