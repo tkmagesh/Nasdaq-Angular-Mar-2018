@@ -53,47 +53,62 @@
 		12. Make the bugs accessible using unique urls
 		13. Implement websockets (optional)
 	</script>
+	<script src="angular.js"></script>
+	<script>
+		var bugTrackerApp = angular.module('bugTrackerApp', []);
+		bugTrackerApp.controller('bugsController', function($scope){
+
+			$scope.bugs = [];
+
+			$scope.onCreateNewClick = function(newBugName){
+				$scope.bugs.push(newBugName);
+			};
+
+		});
+	</script>
 </head>
-<body>
+<body ng-app="bugTrackerApp">
 	<h1>Bug Tracker</h1>
 	<hr>
-	<section class="stats">
-		<span class="closed">1</span>
-		<span> / </span>
-		<span>2</span>
-	</section>
-	<section class="search">
-		<label for="">Search :</label>
-		<input type="text">
-		<label for="">Closed ? :</label>
-		<input type="checkbox">
-	</section>
-	<section class="sort">
-		<label for="">Order By:</label>
-		<select>
-			<option value=""></option>
-			<option value=""></option>
-		</select>
-		<label for="">Descending ? :</label>
-		<input type="checkbox">
-	</section>
-	<section class="edit">
-		<label for="">Bug Name :</label>
-		<input type="text">
-		<input type="button" value="Create New">
-	</section>
-	<section class="list">
-		<ol>
-			<li>
-				<span class="bugname">[This is bug - 1]</span>
-				<div class="datetime">[Created At]</div>
-			</li>
-			<li>
-				<span class="bugname closed">[This is bug - 2]</span>
-				<div class="datetime">[Created At]</div>
-			</li>
-		</ol>
-		<input type="button" value="Remove Closed">
-	</section>
+	<div ng-controller="bugsController">
+		<section class="stats">
+			<span class="closed">1</span>
+			<span> / </span>
+			<span>{{bugs.length}}</span>
+		</section>
+		<section class="search">
+			<label for="">Search :</label>
+			<input type="text">
+			<label for="">Closed ? :</label>
+			<input type="checkbox">
+		</section>
+		<section class="sort">
+			<label for="">Order By:</label>
+			<select>
+				<option value=""></option>
+				<option value=""></option>
+			</select>
+			<label for="">Descending ? :</label>
+			<input type="checkbox">
+		</section>
+		<section class="edit">
+			<label for="">Bug Name :</label>
+			<input type="text" ng-model="newBugName">
+			<input type="button" value="Create New" ng-click="onCreateNewClick(newBugName)">
+		</section>
+		<section class="list">
+			<ol>
+				<li>
+					<span class="bugname">[This is bug - 1]</span>
+					<div class="datetime">[Created At]</div>
+				</li>
+				<li>
+					<span class="bugname closed">[This is bug - 2]</span>
+					<div class="datetime">[Created At]</div>
+				</li>
+			</ol>
+			<input type="button" value="Remove Closed">
+		</section>
+	</div>
 </body>
 </html>
