@@ -78,10 +78,12 @@
 
 		bugTrackerApp.factory('bugOperations', function(defaultBugName){
 			return {
-				createNew : function(bugName){
+				createNew : function(bugName, id){
 					var newBug = {
+						id : id || 0,
 						name : bugName || defaultBugName,
-						isClosed : false
+						isClosed : false,
+						createdAt : new Date()
 					};
 					return newBug;
 				},
@@ -91,26 +93,65 @@
 			};
 		});
 
-		bugTrackerApp.controller('bugsController', function($scope, bugOperations){
+		bugTrackerApp.controller('bugsController', function($scope, bugStorage){
 
-			$scope.bugs = [];
+			$scope.bugs = bugStorage.getAll();
 
 			$scope.onCreateNewClick = function(newBugName){
-				var newBug = bugOperations.createNew(newBugName);
+				var newBug = bugStorage.addNew(newBugName);
 				$scope.bugs.push(newBug);
 			};
 
 			$scope.onBugClick = function(bug){
-				bugOperations.toggle(bug);
+				bugStorage.toggle(bug);
 			};
 
 			$scope.onRemoveClosedClick = function(){
 				for(var index = $scope.bugs.length-1; index >= 0; index--){
-					if ($scope.bugs[index].isClosed)
+					if ($scope.bugs[index].isClosed){
+						bugStorage.remove($scope.bugs[index]);
 						$scope.bugs.splice(index, 1);
+					}
 				}
 			};
 
+		});
+
+		bugTrackerApp.factory('bugStorage', function(bugOperations){
+			var storage = window.localStorage;
+			var currentBugId = 0;
+			function getAll(){
+				var bugs = [];
+				for(var index = 0, count = storage.length; index < count; index++){
+					var key = storage.key(index),
+						data = storage.getItem(key),
+						bug = angular.fromJson(data);
+					currentBugId = currentBugId > bug.id ? currentBugId : bug.id;
+					bugs.push(bug);
+				}
+				return bugs;
+			}
+			function save(bug){
+				storage.setItem(bug.id.toString(), angular.toJson(bug));
+			}
+			function addNew(bugName){
+				var newBug = bugOperations.createNew(bugName, ++currentBugId);
+				save(newBug);
+				return newBug;
+			}
+			function toggle(bug){
+				bug.isClosed = !bug.isClosed;
+				save(bug);
+			}
+			function remove(bug){
+				storage.removeItem(bug.id.toString());
+			}
+			return {
+				getAll : getAll,
+				addNew : addNew,
+				toggle : toggle,
+				remove : remove
+			};
 		});
 
 		bugTrackerApp.value('defaultTrimLength', 30);
@@ -155,6 +196,8 @@
 				}, 0);
 			}
 		});
+
+
 
 	</script>
 </head>
