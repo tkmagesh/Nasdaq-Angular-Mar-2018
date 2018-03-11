@@ -66,7 +66,7 @@
 					- length
 
 		(done) 10. Display 'createdAt' for each bug
-		11. Persist the bugs in the server
+		(done) 11. Persist the bugs in the server
 		12. Make the bugs accessible using unique urls
 		13. Implement websockets (optional)
 	</script>
@@ -95,24 +95,84 @@
 			
 		});
 
-		bugTrackerApp.controller('bugsController', function($scope, bugStorage){
+		bugTrackerApp.factory('bugServer', function($http, bugOperations){
+			function getAll(){
+				return $http
+						.get('http://localhost:3000/bugs')
+						.then(function(response){
+							return response.data;
+						});
+			}
+			function addNew(bugName){
+				var newBugData = bugOperations.createNew(bugName);
+				return $http
+						.post('http://localhost:3000/bugs', newBugData)
+						.then(function(response){
+							return response.data;
+						});
+			}
+			function toggle(bug){
+				bugOperations.toggle(bug);
+				return $http
+						.put('http://localhost:3000/bugs/' + bug.id, bug)
+						.then(function(response){
+							return response.data;
+						});
+			}
+			function remove(bug){
+				return $http
+						.delete('http://localhost:3000/bugs/' + bug.id, bug)
+						.then(function(response){
+							return response.data;
+						});
+			}
+			return {
+				getAll : getAll,
+				addNew : addNew,
+				toggle : toggle,
+				remove : remove
+			};
+		})
+		bugTrackerApp.controller('bugsController', function($scope, bugStorage, bugServer){
 
-			$scope.bugs = bugStorage.getAll();
+			//$scope.bugs = bugStorage.getAll();
+			bugServer
+				.getAll()
+				.then(function(bugs){
+					$scope.bugs = bugs;
+				});
 
 			$scope.onCreateNewClick = function(newBugName){
-				var newBug = bugStorage.addNew(newBugName);
-				$scope.bugs.push(newBug);
+				/*var newBug = bugStorage.addNew(newBugName);
+				$scope.bugs.push(newBug);*/
+				bugServer
+					.addNew(newBugName, 0)
+					.then(function(newBug){
+						$scope.bugs.push(newBug);
+					});
 			};
 
-			$scope.onBugClick = function(bug){
-				bugStorage.toggle(bug);
+			$scope.onBugClick = function(bugToToggle){
+				bugServer
+					.toggle(bugToToggle)
+					.then(function(toggledBug){
+						$scope.bugs = $scope.bugs.map(function(bugInList){
+							return bugInList.id === bugToToggle.id ? toggledBug : bugInList;
+						});
+					});
 			};
 
 			$scope.onRemoveClosedClick = function(){
 				for(var index = $scope.bugs.length-1; index >= 0; index--){
 					if ($scope.bugs[index].isClosed){
-						bugStorage.remove($scope.bugs[index]);
-						$scope.bugs.splice(index, 1);
+						console.log('attempting to remove index -> ', index)
+						bugServer
+							.remove($scope.bugs[index])
+							.then(function(){
+								console.log('attempting to remove from array index -> ', index)
+								$scope.bugs.splice(index, 1);		
+							})
+						
 					}
 				}
 			};
@@ -242,7 +302,7 @@
 				_storageOption = option;
 				outerFactory.$get = _storageOption === 'local' ? bugLocalStorageFactory : bugSessionStorageFactory;
 			}
-			
+
 			return outerFactory;
 		});
 
@@ -253,7 +313,8 @@
 			bugStorageProvider.setStorageOption('local');
 		});
 
-		bugTrackerApp.run(function(bugStorage){
+		bugTrackerApp.run(function(bugStorage, $http){
+			window.$http = $http;
 			console.log('[@run] bugStorage -> ', bugStorage);
 		});
 
@@ -289,6 +350,7 @@
 
 		bugTrackerApp.filter('closedCount', function(){
 			return function(bugs){
+				bugs = bugs || [];
 				return bugs.reduce(function(prevResult, bug){
 					return bug.isClosed ? ++prevResult : prevResult
 				}, 0);
