@@ -168,10 +168,12 @@
 						console.log('attempting to remove index -> ', index)
 						bugServer
 							.remove($scope.bugs[index])
-							.then(function(){
-								console.log('attempting to remove from array index -> ', index)
-								$scope.bugs.splice(index, 1);		
-							})
+							.then((function(idx){
+								return function(){
+									console.log('attempting to remove from array index -> ', idx);
+									$scope.bugs.splice(idx, 1);
+								};
+							})(index));
 						
 					}
 				}
