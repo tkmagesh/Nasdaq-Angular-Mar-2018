@@ -47,7 +47,7 @@
 		(done) 6. Search for the bugs
 		(done) 7. Sort the bugs
 		(done) 8. Improvise the bug display
-		(****) 9. Persist the bugs in the localStorage
+		(done) 9. Persist the bugs in the localStorage
 				window.localStorage
 				-------------------
 				* key/value store
@@ -65,32 +65,33 @@
 					- clear()
 					- length
 
-		10. Display 'createdAt' for each bug
+		(done) 10. Display 'createdAt' for each bug
 		11. Persist the bugs in the server
 		12. Make the bugs accessible using unique urls
 		13. Implement websockets (optional)
 	</script>
 	<script src="angular.js"></script>
+	<script src="moment.js"></script>
 	<script>
 		var bugTrackerApp = angular.module('bugTrackerApp', []);
 
 		bugTrackerApp.value('defaultBugName', '[Default Bug Name]');
 
-		bugTrackerApp.factory('bugOperations', function(defaultBugName){
-			return {
-				createNew : function(bugName, id){
-					var newBug = {
-						id : id || 0,
-						name : bugName || defaultBugName,
-						isClosed : false,
-						createdAt : new Date()
-					};
-					return newBug;
-				},
-				toggle : function(bug){
-					bug.isClosed = !bug.isClosed;
-				}
+		bugTrackerApp.service('bugOperations', function(defaultBugName){
+			
+			this.createNew = function(bugName, id){
+				var newBug = {
+					id : id || 0,
+					name : bugName || defaultBugName,
+					isClosed : false,
+					createdAt : new Date()
+				};
+				return newBug;
 			};
+			this.toggle = function(bug){
+				bug.isClosed = !bug.isClosed;
+			};
+			
 		});
 
 		bugTrackerApp.controller('bugsController', function($scope, bugStorage){
@@ -197,6 +198,11 @@
 			}
 		});
 
+		bugTrackerApp.filter('elapsed', function(){
+			return function(date){
+				return moment(date).fromNow();
+			};
+		});
 
 
 	</script>
@@ -240,7 +246,7 @@
 						ng-click="onBugClick(bug)"
 						ng-class="{closed : bug.isClosed}"
 					>{{bug.name | trimText:40}}</span>
-					<div class="datetime">[Created At]</div>
+					<div class="datetime">{{bug.createdAt | elapsed}}</div>
 				</li>
 			</ol>
 			<input type="button" value="Remove Closed" ng-click="onRemoveClosedClick()">
