@@ -160,47 +160,90 @@
 		bugTrackerApp.provider('bugStorage', function(){
 			var _storageOption = 'local';
 
-			return {
-				setStorageOption : function(option){
-					_storageOption = option;
-				},
-				$get : function(bugOperations){
-					var storage = _storageOption === 'local' ? window.localStorage : window.sessionStorage;
-					var currentBugId = 0;
-					function getAll(){
-						var bugs = [];
-						for(var index = 0, count = storage.length; index < count; index++){
-							var key = storage.key(index),
-								data = storage.getItem(key),
-								bug = angular.fromJson(data);
-							currentBugId = currentBugId > bug.id ? currentBugId : bug.id;
-							bugs.push(bug);
-						}
-						return bugs;
+			function bugLocalStorageFactory(){
+				var storage = window.localStorage;
+				var currentBugId = 0;
+				function getAll(){
+					var bugs = [];
+					for(var index = 0, count = storage.length; index < count; index++){
+						var key = storage.key(index),
+							data = storage.getItem(key),
+							bug = angular.fromJson(data);
+						currentBugId = currentBugId > bug.id ? currentBugId : bug.id;
+						bugs.push(bug);
 					}
-					function save(bug){
-						storage.setItem(bug.id.toString(), angular.toJson(bug));
-					}
-					function addNew(bugName){
-						var newBug = bugOperations.createNew(bugName, ++currentBugId);
-						save(newBug);
-						return newBug;
-					}
-					function toggle(bug){
-						bug.isClosed = !bug.isClosed;
-						save(bug);
-					}
-					function remove(bug){
-						storage.removeItem(bug.id.toString());
-					}
-					return {
-						getAll : getAll,
-						addNew : addNew,
-						toggle : toggle,
-						remove : remove
-					};
+					return bugs;
 				}
+				function save(bug){
+					storage.setItem(bug.id.toString(), angular.toJson(bug));
+				}
+				function addNew(bugName){
+					var newBug = bugOperations.createNew(bugName, ++currentBugId);
+					save(newBug);
+					return newBug;
+				}
+				function toggle(bug){
+					bug.isClosed = !bug.isClosed;
+					save(bug);
+				}
+				function remove(bug){
+					storage.removeItem(bug.id.toString());
+				}
+				return {
+					getAll : getAll,
+					addNew : addNew,
+					toggle : toggle,
+					remove : remove
+				};
 			}
+
+			function bugSessionStorageFactory(){
+				var storage = window.sessionStorage;
+				var currentBugId = 0;
+				function getAll(){
+					var bugs = [];
+					for(var index = 0, count = storage.length; index < count; index++){
+						var key = storage.key(index),
+							data = storage.getItem(key),
+							bug = angular.fromJson(data);
+						currentBugId = currentBugId > bug.id ? currentBugId : bug.id;
+						bugs.push(bug);
+					}
+					return bugs;
+				}
+				function save(bug){
+					storage.setItem(bug.id.toString(), angular.toJson(bug));
+				}
+				function addNew(bugName){
+					var newBug = bugOperations.createNew(bugName, ++currentBugId);
+					save(newBug);
+					return newBug;
+				}
+				function toggle(bug){
+					bug.isClosed = !bug.isClosed;
+					save(bug);
+				}
+				function remove(bug){
+					storage.removeItem(bug.id.toString());
+				}
+				return {
+					getAll : getAll,
+					addNew : addNew,
+					toggle : toggle,
+					remove : remove
+				};
+			}
+
+			var outerFactory = {
+				setStorageOption : setStorageOption,
+				$get : bugLocalStorageFactory
+			};
+			function setStorageOption(option){
+				_storageOption = option;
+				outerFactory.$get = _storageOption === 'local' ? bugLocalStorageFactory : bugSessionStorageFactory;
+			}
+			
+			return outerFactory;
 		});
 
 		//Only other providers and constants can be injected during config event
