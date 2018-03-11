@@ -68,7 +68,7 @@
 		(done) 10. Display 'createdAt' for each bug
 		(done) 11. Persist the bugs in the server
 		(done) 12. Make the bugs accessible using unique urls
-		13. Implement websockets (optional)
+		(done) 13. Implement websockets (optional)
 	</script>
 	<script src="angular.js"></script>
 	<script src="angular-route.js"></script>
@@ -142,7 +142,7 @@
 				remove : remove
 			};
 		})
-		bugTrackerApp.controller('bugsController', function($scope, bugStorage, bugServer){
+		bugTrackerApp.controller('bugsController', function($scope, bugStorage, bugServer, socketServer){
 
 			//$scope.bugs = bugStorage.getAll();
 			bugServer
@@ -168,6 +168,7 @@
 						$scope.bugs = $scope.bugs.map(function(bugInList){
 							return bugInList.id === bugToToggle.id ? toggledBug : bugInList;
 						});
+						socketServer.send('A bug is toggled');
 					});
 			};
 
@@ -190,7 +191,7 @@
 
 		});
 
-		bugTrackerApp.controller('newBugController', function($scope, bugStorage, bugServer, $location){
+		bugTrackerApp.controller('newBugController', function($scope, bugStorage, bugServer, $location, socketServer){
 			$scope.onCreateNewClick = function(newBugName){
 				/*var newBug = bugStorage.addNew(newBugName);
 				$scope.bugs.push(newBug);*/
@@ -198,6 +199,7 @@
 					.addNew(newBugName, 0)
 					.then(function(newBug){
 						$location.path('/bugs');
+						socketServer.send('A new bug is added');
 					});
 			};
 		});
@@ -360,7 +362,9 @@
 				});
 		})
 
-		bugTrackerApp.run(function(bugStorage, $http){
+		bugTrackerApp.run(function(bugStorage, $http, $rootScope, socketServer){
+			socketServer.connect('ws://localhost:9090');
+			console.dir($rootScope);
 			window.$http = $http;
 			console.log('[@run] bugStorage -> ', bugStorage);
 		});
@@ -404,11 +408,36 @@
 			}
 		});
 
+		bugTrackerApp.factory('socketServer', function($rootScope, $timeout){
+			var conn = null;
+			function connect(url){
+				conn = new window.WebSocket(url);
+				conn.addEventListener('message', onMessage);
+			}
+			function send(msg){
+				if (conn){
+					conn.send(msg);
+				}
+			}
+			function onMessage(response){
+				$rootScope.message = response.data;
+				if (!$rootScope.$$phase)
+					$rootScope.$apply();
+				$timeout(function(){
+					$rootScope.message = '';
+				}, 5000)
+			}
+			return{
+				connect : connect,
+				send : send
+			};
+		});
 	</script>
 </head>
 <body ng-app="bugTrackerApp">
 	<h1>Bug Tracker</h1>
 	<hr>
+	<p>{{message}}</p>
 	<ng-view></ng-view>
 </body>
 </html>
