@@ -67,14 +67,15 @@
 
 		(done) 10. Display 'createdAt' for each bug
 		(done) 11. Persist the bugs in the server
-		12. Make the bugs accessible using unique urls
+		(done) 12. Make the bugs accessible using unique urls
 		13. Implement websockets (optional)
 	</script>
 	<script src="angular.js"></script>
+	<script src="angular-route.js"></script>
 	<script src="utilsModule.js"></script>
 	<script src="moment.js"></script>
 	<script>
-		var bugTrackerApp = angular.module('bugTrackerApp', ['utils']);
+		var bugTrackerApp = angular.module('bugTrackerApp', ['utils', 'ngRoute']);
 
 		bugTrackerApp.value('defaultBugName', '[Default Bug Name]');
 
@@ -99,6 +100,13 @@
 			function getAll(){
 				return $http
 						.get('http://localhost:3000/bugs')
+						.then(function(response){
+							return response.data;
+						});
+			}
+			function get(id){
+				return $http
+						.get('http://localhost:3000/bugs/' + id)
 						.then(function(response){
 							return response.data;
 						});
@@ -128,6 +136,7 @@
 			}
 			return {
 				getAll : getAll,
+				get : get,
 				addNew : addNew,
 				toggle : toggle,
 				remove : remove
@@ -179,6 +188,18 @@
 				}
 			};
 
+		});
+
+		bugTrackerApp.controller('newBugController', function($scope, bugStorage, bugServer, $location){
+			$scope.onCreateNewClick = function(newBugName){
+				/*var newBug = bugStorage.addNew(newBugName);
+				$scope.bugs.push(newBug);*/
+				bugServer
+					.addNew(newBugName, 0)
+					.then(function(newBug){
+						$location.path('/bugs');
+					});
+			};
 		});
 
 		/*bugTrackerApp.factory('bugStorage', function(bugOperations){
@@ -309,11 +330,35 @@
 		});
 
 		//Only other providers and constants can be injected during config event
-		bugTrackerApp.config(function(bugStorageProvider, bugOperationsProvider){
+		bugTrackerApp.config(function(bugStorageProvider, $routeProvider){
 			console.log('[@config] bugStorageProvider -> ', bugStorageProvider);
-			console.log('[@config] bugOperationsProvider -> ', bugOperationsProvider);
 			bugStorageProvider.setStorageOption('local');
+			$routeProvider
+				.when('/bugs', {
+						controller : 'bugsController',
+						templateUrl : 'templates/bug-list.template.html',
+					})
+				.when('/new', {
+						controller : 'newBugController',
+						templateUrl : 'templates/bug-edit.template.html'
+					})
+				.when('/details/:id', {
+						controller : 'bugDetailsController',
+						templateUrl : 'templates/bug-details.template.html'
+					})
+				.otherwise({
+						redirectTo : '/bugs'
+					})
 		});
+
+		bugTrackerApp.controller('bugDetailsController', function($scope, bugServer, $routeParams){
+			$scope.bug = null;
+			bugServer
+				.get($routeParams.id)
+				.then(function(bug){
+					$scope.bug = bug;
+				});
+		})
 
 		bugTrackerApp.run(function(bugStorage, $http){
 			window.$http = $http;
@@ -358,52 +403,12 @@
 				}, 0);
 			}
 		});
+
 	</script>
 </head>
 <body ng-app="bugTrackerApp">
 	<h1>Bug Tracker</h1>
 	<hr>
-	<div ng-controller="bugsController">
-		<section class="stats">
-			<!-- <span class="closed">{{(bugs | filter:{isClosed : true}).length}}</span> -->
-			<span class="closed">{{bugs | closedCount}}</span>
-			<span> / </span>
-			<span>{{bugs.length}}</span>
-		</section>
-		<section class="search">
-			<label for="">Search :</label>
-			<input type="text" ng-model="searchBug.name">
-			<label for="">Closed ? :</label>
-			<input type="checkbox" ng-model="searchBug.isClosed">
-			<input type="button" value="Show All" ng-click="searchBug.isClosed=undefined" ng-show="searchBug.isClosed !== undefined">
-		</section>
-		<section class="sort">
-			<label for="">Order By:</label>
-			<select ng-model="sortBugBy">
-				<option value="name">Name</option>
-				<option value="isClosed">Status</option>
-			</select>
-			<label for="">Descending ? :</label>
-			<input type="checkbox" ng-model="sortBugDescending">
-		</section>
-		<section class="edit">
-			<label for="">Bug Name :</label>
-			<input type="text" ng-model="newBugName">
-			<input type="button" value="Create New" ng-click="onCreateNewClick(newBugName)">
-		</section>
-		<section class="list">
-			<ol>
-				<li ng-repeat="bug in bugs | filter:searchBug | orderBy:sortBugBy:sortBugDescending">
-					<span 
-						class="bugname" 
-						ng-click="onBugClick(bug)"
-						ng-class="{closed : bug.isClosed}"
-					>{{bug.name | trimText:40}}</span>
-					<div class="datetime">{{bug.createdAt | elapsed}}</div>
-				</li>
-			</ol>
-			<input type="button" value="Remove Closed" ng-click="onRemoveClosedClick()">
-		</section>
-	</div>
+	<ng-view></ng-view>
 </body>
 </html>
